@@ -99,11 +99,11 @@ plt.title('Top 20 Features - XGBoost Importance')
 plt.tight_layout()
 plt.show()
 
-print("\n🎯 Top 10 Most Important Features:")
+print("\n Top 10 Most Important Features:")
 print(importance_df.head(10))
 
 # FINE-TUNING THRESHOLDS USING VALIDATION SET
-print("\n🎯 FINE-TUNING THRESHOLDS (Using Validation Set):")
+print("\n FINE-TUNING THRESHOLDS (Using Validation Set):")
 
 thresholds_to_test = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 results = []
@@ -132,14 +132,14 @@ for threshold in thresholds_to_test:
 
 # Display results
 results_df = pd.DataFrame(results)
-print("\n📊 THRESHOLD COMPARISON (Validation Set):")
+print("\n THRESHOLD COMPARISON (Validation Set):")
 print(results_df.round(4))
 
 # Find optimal threshold (balancing precision and recall)
 optimal_idx = results_df['f1'].idxmax()
 optimal_threshold = results_df.loc[optimal_idx, 'threshold']
 
-print(f"\n🎯 OPTIMAL THRESHOLD: {optimal_threshold:.3f} (maximizes F1-score)")
+print(f"\n OPTIMAL THRESHOLD: {optimal_threshold:.3f} (maximizes F1-score)")
 print(f"   At this threshold:")
 print(f"   - Precision: {results_df.loc[optimal_idx, 'precision']:.3f}")
 print(f"   - Recall: {results_df.loc[optimal_idx, 'recall']:.3f}")
@@ -173,16 +173,16 @@ plt.tight_layout()
 plt.show()
 
 # APPLYING OPTIMAL THRESHOLD TO TEST SET
-print(f"\n🚀 APPLYING OPTIMAL THRESHOLD ({optimal_threshold:.3f}) TO TEST SET:")
+print(f"\n APPLYING OPTIMAL THRESHOLD ({optimal_threshold:.3f}) TO TEST SET:")
 y_test_optimal = (y_test_proba > optimal_threshold).astype(int)
 
-print("📊 OPTIMAL CONFUSION MATRIX (Test Set):")
+print(" OPTIMAL CONFUSION MATRIX (Test Set):")
 print(confusion_matrix(y_test, y_test_optimal))
-print("\n📈 OPTIMAL CLASSIFICATION REPORT (Test Set):")
+print("\n OPTIMAL CLASSIFICATION REPORT (Test Set):")
 print(classification_report(y_test, y_test_optimal))
 
 # Comparison with default threshold
-print("\n🔍 COMPARISON: Default vs Optimal Threshold")
+print("\n COMPARISON: Default vs Optimal Threshold")
 default_cm = confusion_matrix(y_test, y_test_pred_default)
 optimal_cm = confusion_matrix(y_test, y_test_optimal)
 
