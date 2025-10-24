@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import json
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import time
 import os
 from LLM import FraudExplainer
@@ -60,6 +57,13 @@ st.markdown("""
         text-align: center;
         border: 1px solid #e0e0e0;
     }
+    .chart-placeholder {
+        background-color: #f5f5f5;
+        padding: 40px;
+        border-radius: 10px;
+        text-align: center;
+        border: 2px dashed #ddd;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -95,6 +99,43 @@ def load_llm_explanations():
         return None
 
 # =============================================
+# 📈 SIMPLE CHART FUNCTIONS (No Plotly)
+# =============================================
+
+def display_bar_chart(data, title, x_label="Count", y_label="Category"):
+    """Display a simple bar chart using Streamlit elements"""
+    if not data:
+        st.info("No data available for chart")
+        return
+    
+    st.subheader(title)
+    
+    # Sort data by value
+    sorted_items = sorted(data.items(), key=lambda x: x[1], reverse=True)
+    
+    for category, count in sorted_items:
+        # Create a simple bar using progress bar
+        st.write(f"**{category}**")
+        max_val = max(data.values())
+        progress = count / max_val
+        st.progress(progress, text=f"{count} cases")
+    
+    st.caption(f"Total: {sum(data.values())} cases")
+
+def display_pie_chart(data, title):
+    """Display a simple pie chart using Streamlit elements"""
+    if not data:
+        st.info("No data available for chart")
+        return
+    
+    st.subheader(title)
+    
+    total = sum(data.values())
+    for category, count in data.items():
+        percentage = (count / total) * 100
+        st.write(f"**{category}**: {count} cases ({percentage:.1f}%)")
+
+# =============================================
 # 🎯 MAIN APP FUNCTION
 # =============================================
 
@@ -125,11 +166,11 @@ def main():
         
     with col3:
         st.markdown('<div class="tech-badge">Streamlit</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tech-badge">Plotly</div>', unsafe_allow_html=True)
+        st.markdown('<div class="tech-badge">Feature Engineering</div>', unsafe_allow_html=True)
         
     with col4:
-        st.markdown('<div class="tech-badge">Feature Engineering</div>', unsafe_allow_html=True)
         st.markdown('<div class="tech-badge">Anomaly Detection</div>', unsafe_allow_html=True)
+        st.markdown('<div class="tech-badge">Data Processing</div>', unsafe_allow_html=True)
     
     # =============================================
     # 📁 DATASET SELECTION SECTION
@@ -201,28 +242,24 @@ def main():
             st.metric("False Positives", "492", "-77.9%")
             st.markdown('</div>', unsafe_allow_html=True)
         
-        # Model comparison chart
+        # Model comparison
         st.subheader("Model Comparison")
         
-        models_data = {
+        comparison_data = pd.DataFrame({
             'Model': ['XGBoost', 'Autoencoder', 'Isolation Forest'],
             'Precision': [0.73, 0.06, 0.07],
             'Recall': [0.89, 0.11, 0.24],
             'F1-Score': [0.80, 0.08, 0.11]
-        }
+        })
         
-        fig = go.Figure()
-        fig.add_trace(go.Bar(name='Precision', x=models_data['Model'], y=models_data['Precision']))
-        fig.add_trace(go.Bar(name='Recall', x=models_data['Model'], y=models_data['Recall']))
-        fig.add_trace(go.Bar(name='F1-Score', x=models_data['Model'], y=models_data['F1-Score']))
-        
-        fig.update_layout(
-            title="Model Performance Comparison",
-            barmode='group',
-            height=400
+        st.dataframe(
+            comparison_data.style.format({
+                'Precision': '{:.2f}',
+                'Recall': '{:.2f}', 
+                'F1-Score': '{:.2f}'
+            }).highlight_max(color='lightgreen'),
+            use_container_width=True
         )
-        
-        st.plotly_chart(fig, use_container_width=True)
     
     # =============================================
     # 📈 ANOMALY DETECTION RESULTS
@@ -240,53 +277,49 @@ def main():
         with col1:
             # Top 5 Job Categories in Fraud
             if 'job_categories' in viz_data:
-                job_data = viz_data['job_categories']
-                fig_jobs = px.bar(
-                    x=list(job_data.values()),
-                    y=list(job_data.keys()),
-                    orientation='h',
-                    title="Top 5 Job Categories Involved in Fraud",
-                    labels={'x': 'Fraud Cases', 'y': 'Job Category'}
+                display_bar_chart(
+                    viz_data['job_categories'],
+                    "Top Job Categories Involved in Fraud"
                 )
-                st.plotly_chart(fig_jobs, use_container_width=True)
             
             # Amount Analysis
             if 'amount_analysis' in viz_data:
                 amt_data = viz_data['amount_analysis']
-                fig_amt = go.Figure()
-                fig_amt.add_trace(go.Indicator(
-                    mode = "number+delta",
-                    value = amt_data['increase_pct'],
-                    number = {'suffix': "%"},
-                    title = {"text": "Amount Increase in Fraud<br>vs Normal Transactions"},
-                    delta = {'reference': 0, 'relative': False},
-                    domain = {'row': 0, 'column': 0}
-                ))
-                fig_amt.update_layout(height=200)
-                st.plotly_chart(fig_amt, use_container_width=True)
+                st.subheader("💰 Amount Analysis")
+                col_a1, col_a2, col_a3 = st.columns(3)
+                
+                with col_a1:
+                    st.metric(
+                        "Normal Avg Amount", 
+                        f"${amt_data['normal_avg']:.2f}"
+                    )
+                
+                with col_a2:
+                    st.metric(
+                        "Fraud Avg Amount", 
+                        f"${amt_data['fraud_avg']:.2f}"
+                    )
+                
+                with col_a3:
+                    st.metric(
+                        "Increase", 
+                        f"+{amt_data['increase_pct']:.1f}%"
+                    )
         
         with col2:
-            # Age Groups Pie Chart
+            # Age Groups
             if 'age_groups' in viz_data:
-                age_data = viz_data['age_groups']
-                fig_age = px.pie(
-                    values=list(age_data.values()),
-                    names=list(age_data.keys()),
-                    title="Age Groups Involved in Fraud"
+                display_pie_chart(
+                    viz_data['age_groups'],
+                    "👥 Age Groups in Fraud"
                 )
-                st.plotly_chart(fig_age, use_container_width=True)
             
             # Top 5 Transaction Categories
             if 'transaction_categories' in viz_data:
-                txn_data = viz_data['transaction_categories']
-                fig_txn = px.bar(
-                    x=list(txn_data.values()),
-                    y=list(txn_data.keys()),
-                    orientation='h',
-                    title="Top 5 Transaction Categories in Fraud",
-                    labels={'x': 'Fraud Cases', 'y': 'Category'}
+                display_bar_chart(
+                    viz_data['transaction_categories'],
+                    "🛒 Top Transaction Categories in Fraud"
                 )
-                st.plotly_chart(fig_txn, use_container_width=True)
     
     # =============================================
     # 🧠 LLM EXPLANATIONS SECTION
