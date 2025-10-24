@@ -2,9 +2,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import json
+import plotly.express as px
+import plotly.graph_objects as go
 import time
 import os
-from LLM import FraudExplainer
+import sys
+from app_LLM_XAI import FraudExplainer
+
+# Import our processing functions
+from dataProcessor import process_transaction_data
+from app_ML_Engine import run_fraud_detection
 
 # =============================================
 # 🎯 PAGE CONFIGURATION
@@ -57,12 +64,12 @@ st.markdown("""
         text-align: center;
         border: 1px solid #e0e0e0;
     }
-    .chart-placeholder {
-        background-color: #f5f5f5;
-        padding: 40px;
-        border-radius: 10px;
-        text-align: center;
-        border: 2px dashed #ddd;
+    .processing-step {
+        background-color: #e8f5e8;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 5px 0;
+        border-left: 4px solid #4caf50;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -73,7 +80,7 @@ st.markdown("""
 
 @st.cache_data
 def load_fraud_data():
-    """Load detected fraud transactions"""
+    # Loading detected fraud transactions
     try:
         fraud_df = pd.read_csv('detected_fraud_transactions.csv')
         return fraud_df
@@ -82,7 +89,7 @@ def load_fraud_data():
 
 @st.cache_data
 def load_visualization_data():
-    """Load pre-computed visualization data"""
+    # Loading pre-computed visualization data
     try:
         with open('app_visualization_data.json', 'r') as f:
             return json.load(f)
@@ -91,7 +98,7 @@ def load_visualization_data():
 
 @st.cache_data
 def load_llm_explanations():
-    """Load LLM explanations"""
+    # Loading LLM explanations
     try:
         with open('llm_fraud_explanations.json', 'r') as f:
             return json.load(f)
@@ -99,57 +106,20 @@ def load_llm_explanations():
         return None
 
 # =============================================
-# 📈 SIMPLE CHART FUNCTIONS (No Plotly)
-# =============================================
-
-def display_bar_chart(data, title, x_label="Count", y_label="Category"):
-    """Display a simple bar chart using Streamlit elements"""
-    if not data:
-        st.info("No data available for chart")
-        return
-    
-    st.subheader(title)
-    
-    # Sort data by value
-    sorted_items = sorted(data.items(), key=lambda x: x[1], reverse=True)
-    
-    for category, count in sorted_items:
-        # Create a simple bar using progress bar
-        st.write(f"**{category}**")
-        max_val = max(data.values())
-        progress = count / max_val
-        st.progress(progress, text=f"{count} cases")
-    
-    st.caption(f"Total: {sum(data.values())} cases")
-
-def display_pie_chart(data, title):
-    """Display a simple pie chart using Streamlit elements"""
-    if not data:
-        st.info("No data available for chart")
-        return
-    
-    st.subheader(title)
-    
-    total = sum(data.values())
-    for category, count in data.items():
-        percentage = (count / total) * 100
-        st.write(f"**{category}**: {count} cases ({percentage:.1f}%)")
-
-# =============================================
 # 🎯 MAIN APP FUNCTION
 # =============================================
 
 def main():
-    # =============================================
-    # 🏦 HEADER SECTION
-    # =============================================
+    # ===================
+    # HEADER SECTION
+    # ===================
     
     st.markdown('<h1 class="main-header">🏦 TruLedger</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">An Explainable AI Prototype for ML-powered Fraud Detection in Finance Records</p>', unsafe_allow_html=True)
     
-    # =============================================
-    # 🔧 TECHNOLOGIES SECTION
-    # =============================================
+    # ========================
+    # TECHNOLOGIES SECTION
+    # ========================
     
     st.markdown("---")
     st.header("🛠️ Technologies Involved")
@@ -166,50 +136,81 @@ def main():
         
     with col3:
         st.markdown('<div class="tech-badge">Streamlit</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tech-badge">Feature Engineering</div>', unsafe_allow_html=True)
+        st.markdown('<div class="tech-badge">Plotly</div>', unsafe_allow_html=True)
         
     with col4:
+        st.markdown('<div class="tech-badge">Feature Engineering</div>', unsafe_allow_html=True)
         st.markdown('<div class="tech-badge">Anomaly Detection</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tech-badge">Data Processing</div>', unsafe_allow_html=True)
     
     # =============================================
-    # 📁 DATASET SELECTION SECTION
+    # 📁 DATASET SELECTION & PROCESSING SECTION
     # =============================================
     
     st.markdown("---")
-    st.header("📁 Test Dataset Selection")
+    st.header("📁 Dataset Selection & Analysis")
     
     # Dataset options
     dataset_options = {
-        "Small Business Transactions": "1,000 records with mixed patterns",
-        "Enterprise Financial Logs": "50,000 records with complex anomalies"
+        "TransactionLogs-1": "Small business transactions (1,000 records)",
+        "TransactionLogs-2": "Medium enterprise transactions (5,000 records)", 
+        "TransactionLogs-3": "Large financial logs (10,000 records)"
     }
     
     selected_dataset = st.selectbox(
-        "Choose a pre-loaded dataset to analyze:",
+        "Choose a dataset to analyze:",
         options=list(dataset_options.keys()),
-        help="Select a dataset to run fraud detection analysis"
+        help="Select a dataset to run the complete fraud detection pipeline"
     )
     
     st.info(f"**{selected_dataset}**: {dataset_options[selected_dataset]}")
     
-    if st.button("🚀 Run Fraud Detection Analysis", type="primary"):
-        with st.spinner("Analyzing transactions for fraudulent patterns..."):
-            # Simulate processing time
-            time.sleep(2)
+    if st.button("🚀 Run Complete Fraud Detection Pipeline", type="primary"):
+        # Create progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        # Step 1: Data Processing
+        status_text.markdown('<div class="processing-step">🔄 Step 1/3: Processing raw data...</div>', unsafe_allow_html=True)
+        progress_bar.progress(25)
+        
+        input_file = f"c:/Users/hp/LNU/TruLedger-AI/{selected_dataset}.csv"
+        output_file = f"Processed{selected_dataset}.csv"
+        
+        processed_file = process_transaction_data(input_file, output_file)
+        
+        if processed_file is None:
+            st.error("❌ Failed to process data. Please check the file path and try again.")
+            return
             
-            # Load data (in real app, this would trigger the inference pipeline)
-            fraud_df = load_fraud_data()
-            viz_data = load_visualization_data()
+        # Step 2: Fraud Detection
+        status_text.markdown('<div class="processing-step">🔍 Step 2/3: Running fraud detection...</div>', unsafe_allow_html=True)
+        progress_bar.progress(60)
+        
+        success = run_fraud_detection(processed_file)
+        
+        if not success:
+            st.error("❌ Failed to run fraud detection. Please check the model files.")
+            return
             
-            if fraud_df is not None and viz_data is not None:
-                st.success(f"✅ Analysis complete! Found {len(fraud_df)} suspicious transactions.")
-                st.session_state.analysis_complete = True
-                st.session_state.fraud_df = fraud_df
-                st.session_state.viz_data = viz_data
-            else:
-                st.error("❌ Analysis files not found. Please run the inference pipeline first.")
-                st.session_state.analysis_complete = False
+        # Step 3: Load Results
+        status_text.markdown('<div class="processing-step">📊 Step 3/3: Loading results...</div>', unsafe_allow_html=True)
+        progress_bar.progress(90)
+        
+        fraud_df = load_fraud_data()
+        viz_data = load_visualization_data()
+        
+        if fraud_df is not None and viz_data is not None:
+            progress_bar.progress(100)
+            status_text.markdown('<div class="processing-step">✅ Analysis complete!</div>', unsafe_allow_html=True)
+            
+            st.success(f"✅ Pipeline complete! Found {len(fraud_df)} suspicious transactions.")
+            st.session_state.analysis_complete = True
+            st.session_state.fraud_df = fraud_df
+            st.session_state.viz_data = viz_data
+            st.session_state.selected_dataset = selected_dataset
+        else:
+            st.error("❌ Failed to load analysis results.")
+            st.session_state.analysis_complete = False
     
     # =============================================
     # 📊 ML MODEL STATS SECTION
@@ -218,6 +219,10 @@ def main():
     if st.session_state.get('analysis_complete', False):
         st.markdown("---")
         st.header("📊 ML Model Performance")
+        
+        # Show which dataset is being analyzed
+        if st.session_state.get('selected_dataset'):
+            st.info(f"📁 Currently analyzing: **{st.session_state.selected_dataset}**")
         
         # Model metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -242,24 +247,28 @@ def main():
             st.metric("False Positives", "492", "-77.9%")
             st.markdown('</div>', unsafe_allow_html=True)
         
-        # Model comparison
+        # Model comparison chart
         st.subheader("Model Comparison")
         
-        comparison_data = pd.DataFrame({
+        models_data = {
             'Model': ['XGBoost', 'Autoencoder', 'Isolation Forest'],
             'Precision': [0.73, 0.06, 0.07],
             'Recall': [0.89, 0.11, 0.24],
             'F1-Score': [0.80, 0.08, 0.11]
-        })
+        }
         
-        st.dataframe(
-            comparison_data.style.format({
-                'Precision': '{:.2f}',
-                'Recall': '{:.2f}', 
-                'F1-Score': '{:.2f}'
-            }).highlight_max(color='lightgreen'),
-            use_container_width=True
+        fig = go.Figure()
+        fig.add_trace(go.Bar(name='Precision', x=models_data['Model'], y=models_data['Precision']))
+        fig.add_trace(go.Bar(name='Recall', x=models_data['Model'], y=models_data['Recall']))
+        fig.add_trace(go.Bar(name='F1-Score', x=models_data['Model'], y=models_data['F1-Score']))
+        
+        fig.update_layout(
+            title="Model Performance Comparison",
+            barmode='group',
+            height=400
         )
+        
+        st.plotly_chart(fig, use_container_width=True)
     
     # =============================================
     # 📈 ANOMALY DETECTION RESULTS
@@ -277,49 +286,53 @@ def main():
         with col1:
             # Top 5 Job Categories in Fraud
             if 'job_categories' in viz_data:
-                display_bar_chart(
-                    viz_data['job_categories'],
-                    "Top Job Categories Involved in Fraud"
+                job_data = viz_data['job_categories']
+                fig_jobs = px.bar(
+                    x=list(job_data.values()),
+                    y=[key.replace('JOBctg_', '').replace('_', ' ') for key in job_data.keys()],
+                    orientation='h',
+                    title="Top 5 Job Categories Involved in Fraud",
+                    labels={'x': 'Fraud Cases', 'y': 'Job Category'}
                 )
+                st.plotly_chart(fig_jobs, use_container_width=True)
             
             # Amount Analysis
             if 'amount_analysis' in viz_data:
                 amt_data = viz_data['amount_analysis']
-                st.subheader("💰 Amount Analysis")
-                col_a1, col_a2, col_a3 = st.columns(3)
-                
-                with col_a1:
-                    st.metric(
-                        "Normal Avg Amount", 
-                        f"${amt_data['normal_avg']:.2f}"
-                    )
-                
-                with col_a2:
-                    st.metric(
-                        "Fraud Avg Amount", 
-                        f"${amt_data['fraud_avg']:.2f}"
-                    )
-                
-                with col_a3:
-                    st.metric(
-                        "Increase", 
-                        f"+{amt_data['increase_pct']:.1f}%"
-                    )
+                fig_amt = go.Figure()
+                fig_amt.add_trace(go.Indicator(
+                    mode = "number+delta",
+                    value = amt_data['increase_pct'],
+                    number = {'suffix': "%"},
+                    title = {"text": "Amount Increase in Fraud<br>vs Normal Transactions"},
+                    delta = {'reference': 0, 'relative': False},
+                    domain = {'row': 0, 'column': 0}
+                ))
+                fig_amt.update_layout(height=200)
+                st.plotly_chart(fig_amt, use_container_width=True)
         
         with col2:
-            # Age Groups
+            # Age Groups Pie Chart
             if 'age_groups' in viz_data:
-                display_pie_chart(
-                    viz_data['age_groups'],
-                    "👥 Age Groups in Fraud"
+                age_data = viz_data['age_groups']
+                fig_age = px.pie(
+                    values=list(age_data.values()),
+                    names=[key.replace('dob_', '').upper() for key in age_data.keys()],
+                    title="Age Groups Involved in Fraud"
                 )
+                st.plotly_chart(fig_age, use_container_width=True)
             
             # Top 5 Transaction Categories
             if 'transaction_categories' in viz_data:
-                display_bar_chart(
-                    viz_data['transaction_categories'],
-                    "🛒 Top Transaction Categories in Fraud"
+                txn_data = viz_data['transaction_categories']
+                fig_txn = px.bar(
+                    x=list(txn_data.values()),
+                    y=[key.replace('TXNctg_', '').replace('_', ' ') for key in txn_data.keys()],
+                    orientation='h',
+                    title="Top 5 Transaction Categories in Fraud",
+                    labels={'x': 'Fraud Cases', 'y': 'Category'}
                 )
+                st.plotly_chart(fig_txn, use_container_width=True)
     
     # =============================================
     # 🧠 LLM EXPLANATIONS SECTION
@@ -333,7 +346,7 @@ def main():
         llm_data = load_llm_explanations()
         
         if llm_data is None:
-            st.warning("LLM explanations not found. Generating explanations...")
+            st.warning("LLM explanations not found. Click below to generate AI explanations.")
             if st.button("Generate AI Explanations"):
                 with st.spinner("Generating AI explanations for fraud cases..."):
                     try:
@@ -374,6 +387,8 @@ def main():
             end_idx = min(start_idx + items_per_page, len(explanations))
             current_items = explanations[start_idx:end_idx]
             
+            st.subheader(f"Fraud Cases ({len(explanations)} total)")
+            
             # Display fraud cards
             for i, exp in enumerate(current_items):
                 with st.container():
@@ -393,7 +408,7 @@ def main():
             
             with col1:
                 if st.session_state.page > 0:
-                    if st.button("◀ Previous"):
+                    if st.button("◀ Previous 6"):
                         st.session_state.page -= 1
                         st.rerun()
             
@@ -402,7 +417,7 @@ def main():
             
             with col3:
                 if st.session_state.page < total_pages - 1:
-                    if st.button("Next ▶"):
+                    if st.button("Next 6 ▶"):
                         st.session_state.page += 1
                         st.rerun()
             
@@ -433,5 +448,7 @@ if __name__ == "__main__":
         st.session_state.analysis_complete = False
     if 'page' not in st.session_state:
         st.session_state.page = 0
+    if 'selected_dataset' not in st.session_state:
+        st.session_state.selected_dataset = None
     
     main()
