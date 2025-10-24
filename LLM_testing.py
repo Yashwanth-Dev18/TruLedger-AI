@@ -156,7 +156,7 @@ Provide a short explanation (2-3 sentences) focusing on the main risk factors:
 # Simple usage
 def main():
     # Initialize
-    explainer = TruLedgerExplainer("--")
+    explainer = TruLedgerExplainer("_")
     
     # Load your data
     df = pd.read_csv("c:/Users/hp/LNU/TruLedger-AI/Datasets/Processed/TrainingSet.csv")
