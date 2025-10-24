@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import json
-import plotly.express as px
-import plotly.graph_objects as go
 import time
 import os
 import sys
@@ -71,6 +69,13 @@ st.markdown("""
         margin: 5px 0;
         border-left: 4px solid #4caf50;
     }
+    .chart-container {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 10px 0;
+        border: 1px solid #e0e0e0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -80,7 +85,7 @@ st.markdown("""
 
 @st.cache_data
 def load_fraud_data():
-    # Loading detected fraud transactions
+    """Load detected fraud transactions"""
     try:
         fraud_df = pd.read_csv('detected_fraud_transactions.csv')
         return fraud_df
@@ -89,7 +94,7 @@ def load_fraud_data():
 
 @st.cache_data
 def load_visualization_data():
-    # Loading pre-computed visualization data
+    """Load pre-computed visualization data"""
     try:
         with open('app_visualization_data.json', 'r') as f:
             return json.load(f)
@@ -98,7 +103,7 @@ def load_visualization_data():
 
 @st.cache_data
 def load_llm_explanations():
-    # Loading LLM explanations
+    """Load LLM explanations"""
     try:
         with open('llm_fraud_explanations.json', 'r') as f:
             return json.load(f)
@@ -106,20 +111,84 @@ def load_llm_explanations():
         return None
 
 # =============================================
+# 📊 STREAMLIT CHART FUNCTIONS (No Plotly)
+# =============================================
+
+def display_bar_chart(data, title, x_label="Count", y_label="Category"):
+    """Display a bar chart using Streamlit elements"""
+    if not data:
+        st.info("No data available for chart")
+        return
+    
+    st.subheader(title)
+    
+    # Convert to DataFrame for display
+    chart_data = pd.DataFrame({
+        'Category': [key.replace('JOBctg_', '').replace('_', ' ') for key in data.keys()],
+        'Count': list(data.values())
+    })
+    
+    # Display as bar chart using st.bar_chart
+    st.bar_chart(chart_data.set_index('Category'))
+    
+    # Also show as table for clarity
+    st.dataframe(chart_data, use_container_width=True)
+
+def display_pie_chart(data, title):
+    """Display a pie chart using Streamlit progress bars"""
+    if not data:
+        st.info("No data available for chart")
+        return
+    
+    st.subheader(title)
+    
+    total = sum(data.values())
+    for category, count in data.items():
+        percentage = (count / total) * 100
+        clean_category = category.replace('dob_', '').upper()
+        
+        col1, col2, col3 = st.columns([2, 1, 1])
+        with col1:
+            st.write(f"**{clean_category}**")
+        with col2:
+            st.progress(percentage/100, text=f"{percentage:.1f}%")
+        with col3:
+            st.write(f"{count} cases")
+
+def display_horizontal_bar_chart(data, title):
+    """Display horizontal bar chart using Streamlit"""
+    if not data:
+        st.info("No data available for chart")
+        return
+    
+    st.subheader(title)
+    
+    for category, count in data.items():
+        clean_category = category.replace('TXNctg_', '').replace('_', ' ')
+        max_val = max(data.values())
+        progress = count / max_val
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.write(f"**{clean_category}**")
+        with col2:
+            st.progress(progress, text=f"{count} cases")
+
+# =============================================
 # 🎯 MAIN APP FUNCTION
 # =============================================
 
 def main():
-    # ===================
-    # HEADER SECTION
-    # ===================
+    # =============================================
+    # 🏦 HEADER SECTION
+    # =============================================
     
     st.markdown('<h1 class="main-header">🏦 TruLedger</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">An Explainable AI Prototype for ML-powered Fraud Detection in Finance Records</p>', unsafe_allow_html=True)
     
-    # ========================
-    # TECHNOLOGIES SECTION
-    # ========================
+    # =============================================
+    # 🔧 TECHNOLOGIES SECTION
+    # =============================================
     
     st.markdown("---")
     st.header("🛠️ Technologies Involved")
@@ -136,11 +205,33 @@ def main():
         
     with col3:
         st.markdown('<div class="tech-badge">Streamlit</div>', unsafe_allow_html=True)
-        st.markdown('<div class="tech-badge">Plotly</div>', unsafe_allow_html=True)
+        st.markdown('<div class="tech-badge">Data Visualization</div>', unsafe_allow_html=True)
         
     with col4:
         st.markdown('<div class="tech-badge">Feature Engineering</div>', unsafe_allow_html=True)
         st.markdown('<div class="tech-badge">Anomaly Detection</div>', unsafe_allow_html=True)
+    
+    # =============================================
+    # 🔑 API KEY SETUP SECTION
+    # =============================================
+    
+    st.markdown("---")
+    st.header("🔑 Groq API Setup")
+    
+    # Check if API key exists
+    if os.getenv('GROQ_API_KEY'):
+        st.success("✅ GROQ_API_KEY found in environment variables")
+    else:
+        st.warning("⚠️ GROQ_API_KEY not found in environment variables")
+        api_key = st.text_input(
+            "Enter your Groq API Key:",
+            type="password",
+            help="Get your API key from https://console.groq.com"
+        )
+        
+        if api_key:
+            os.environ['GROQ_API_KEY'] = api_key
+            st.success("✅ API key set! You can now generate AI explanations.")
     
     # =============================================
     # 📁 DATASET SELECTION & PROCESSING SECTION
@@ -247,28 +338,24 @@ def main():
             st.metric("False Positives", "492", "-77.9%")
             st.markdown('</div>', unsafe_allow_html=True)
         
-        # Model comparison chart
+        # Model comparison table
         st.subheader("Model Comparison")
         
-        models_data = {
+        comparison_data = pd.DataFrame({
             'Model': ['XGBoost', 'Autoencoder', 'Isolation Forest'],
             'Precision': [0.73, 0.06, 0.07],
             'Recall': [0.89, 0.11, 0.24],
             'F1-Score': [0.80, 0.08, 0.11]
-        }
+        })
         
-        fig = go.Figure()
-        fig.add_trace(go.Bar(name='Precision', x=models_data['Model'], y=models_data['Precision']))
-        fig.add_trace(go.Bar(name='Recall', x=models_data['Model'], y=models_data['Recall']))
-        fig.add_trace(go.Bar(name='F1-Score', x=models_data['Model'], y=models_data['F1-Score']))
-        
-        fig.update_layout(
-            title="Model Performance Comparison",
-            barmode='group',
-            height=400
+        st.dataframe(
+            comparison_data.style.format({
+                'Precision': '{:.2f}',
+                'Recall': '{:.2f}', 
+                'F1-Score': '{:.2f}'
+            }).highlight_max(color='lightgreen'),
+            use_container_width=True
         )
-        
-        st.plotly_chart(fig, use_container_width=True)
     
     # =============================================
     # 📈 ANOMALY DETECTION RESULTS
@@ -286,53 +373,49 @@ def main():
         with col1:
             # Top 5 Job Categories in Fraud
             if 'job_categories' in viz_data:
-                job_data = viz_data['job_categories']
-                fig_jobs = px.bar(
-                    x=list(job_data.values()),
-                    y=[key.replace('JOBctg_', '').replace('_', ' ') for key in job_data.keys()],
-                    orientation='h',
-                    title="Top 5 Job Categories Involved in Fraud",
-                    labels={'x': 'Fraud Cases', 'y': 'Job Category'}
+                display_bar_chart(
+                    viz_data['job_categories'],
+                    "👔 Top Job Categories Involved in Fraud"
                 )
-                st.plotly_chart(fig_jobs, use_container_width=True)
             
             # Amount Analysis
             if 'amount_analysis' in viz_data:
                 amt_data = viz_data['amount_analysis']
-                fig_amt = go.Figure()
-                fig_amt.add_trace(go.Indicator(
-                    mode = "number+delta",
-                    value = amt_data['increase_pct'],
-                    number = {'suffix': "%"},
-                    title = {"text": "Amount Increase in Fraud<br>vs Normal Transactions"},
-                    delta = {'reference': 0, 'relative': False},
-                    domain = {'row': 0, 'column': 0}
-                ))
-                fig_amt.update_layout(height=200)
-                st.plotly_chart(fig_amt, use_container_width=True)
+                st.subheader("💰 Amount Analysis")
+                col_a1, col_a2, col_a3 = st.columns(3)
+                
+                with col_a1:
+                    st.metric(
+                        "Normal Avg Amount", 
+                        f"${amt_data['normal_avg']:.2f}"
+                    )
+                
+                with col_a2:
+                    st.metric(
+                        "Fraud Avg Amount", 
+                        f"${amt_data['fraud_avg']:.2f}"
+                    )
+                
+                with col_a3:
+                    st.metric(
+                        "Increase", 
+                        f"+{amt_data['increase_pct']:.1f}%"
+                    )
         
         with col2:
-            # Age Groups Pie Chart
+            # Age Groups
             if 'age_groups' in viz_data:
-                age_data = viz_data['age_groups']
-                fig_age = px.pie(
-                    values=list(age_data.values()),
-                    names=[key.replace('dob_', '').upper() for key in age_data.keys()],
-                    title="Age Groups Involved in Fraud"
+                display_pie_chart(
+                    viz_data['age_groups'],
+                    "👥 Age Groups in Fraud"
                 )
-                st.plotly_chart(fig_age, use_container_width=True)
             
             # Top 5 Transaction Categories
             if 'transaction_categories' in viz_data:
-                txn_data = viz_data['transaction_categories']
-                fig_txn = px.bar(
-                    x=list(txn_data.values()),
-                    y=[key.replace('TXNctg_', '').replace('_', ' ') for key in txn_data.keys()],
-                    orientation='h',
-                    title="Top 5 Transaction Categories in Fraud",
-                    labels={'x': 'Fraud Cases', 'y': 'Category'}
+                display_horizontal_bar_chart(
+                    viz_data['transaction_categories'],
+                    "🛒 Top Transaction Categories in Fraud"
                 )
-                st.plotly_chart(fig_txn, use_container_width=True)
     
     # =============================================
     # 🧠 LLM EXPLANATIONS SECTION
