@@ -9,6 +9,7 @@ def process_transaction_data(input_file_path, output_file_name):
     """Process transaction data and save as processed CSV"""
     
     # Set up Spark environment
+    os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-17-openjdk-amd64"
     os.environ['HADOOP_HOME'] = r"C:\hadoop"
     os.environ["PYSPARK_PYTHON"] = r"C:\Users\hp\AppData\Local\Programs\Python\Python311\python.exe"
     os.environ["PYSPARK_DRIVER_PYTHON"] = r"C:\Users\hp\AppData\Local\Programs\Python\Python311\python.exe"
