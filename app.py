@@ -246,10 +246,6 @@ def main():
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        # Step 1: Data Processing
-        status_text.markdown('<div class="processing-step">🔄 Step 1/3: Processing raw data...</div>', unsafe_allow_html=True)
-        progress_bar.progress(25)
-        
         input_file = os.path.join("Uploaded_Datasets", "Raw", f"{selected_dataset}.csv")
 
         processed_file = process_transaction_data(input_file)
@@ -257,12 +253,17 @@ def main():
         if processed_file is None:
             st.error("❌ Failed to process data. Please check the file path and try again.")
             return
-            
+        
+        # Step 1: Data Processing
+        status_text.markdown('<div class="processing-step">🔄 Step 1/3: Processing raw data...</div>', unsafe_allow_html=True)
+        progress_bar.progress(25)
+        
+        
+        success = run_fraud_detection(processed_file)
+
         # Step 2: Fraud Detection
         status_text.markdown('<div class="processing-step">🔍 Step 2/3: Running fraud detection...</div>', unsafe_allow_html=True)
         progress_bar.progress(60)
-        
-        success = run_fraud_detection(processed_file)
         
         if not success:
             st.error("❌ Failed to run fraud detection. Please check the model files.")
