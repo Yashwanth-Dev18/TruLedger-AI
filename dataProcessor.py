@@ -3,7 +3,7 @@ import numpy as np
 import os
 import shutil
 
-def process_transaction_data(input_file_path, output_file_name):
+def process_transaction_data(input_file_path):
     """Process transaction data and save as processed CSV (Pandas version)"""
 
     try:
@@ -96,9 +96,9 @@ def process_transaction_data(input_file_path, output_file_name):
             df = df[["is_fraud"] + other_cols]
 
         # OUTPUT PATH
-        output_dir = "c:/Users/hp/LNU/TruLedger-AI/Uploaded_Datasets/Processed"
+        output_dir = os.path.join("Uploaded_Datasets", "Processed")
         os.makedirs(output_dir, exist_ok=True)
-        output_file_path = os.path.join(output_dir, output_file_name)
+        output_file_path = os.path.join(output_dir, f"Processed_{os.path.basename(input_file_path)}")
 
         df.to_csv(output_file_path, index=False)
         print(f"✅ Successfully processed and saved: {output_file_path}")
