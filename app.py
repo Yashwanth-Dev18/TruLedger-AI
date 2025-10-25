@@ -214,23 +214,10 @@ def main():
     # 🔑 API KEY SETUP SECTION
     # =============================================
     
-    st.markdown("---")
-    st.header("🔑 Groq API Setup")
-    
-    # Check if API key exists
-    if os.getenv('GROQ_API_KEY'):
-        st.success("✅ GROQ_API_KEY found in environment variables")
-    else:
-        st.warning("⚠️ GROQ_API_KEY not found in environment variables")
-        api_key = st.text_input(
-            "Enter your Groq API Key:",
-            type="password",
-            help="Get your API key from https://console.groq.com"
-        )
-        
-        if api_key:
-            os.environ['GROQ_API_KEY'] = api_key
-            st.success("✅ API key set! You can now generate AI explanations.")
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY not found in environment variables")
+
     
     # =============================================
     # 📁 DATASET SELECTION & PROCESSING SECTION
