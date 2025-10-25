@@ -250,10 +250,10 @@ def main():
         status_text.markdown('<div class="processing-step">🔄 Step 1/3: Processing raw data...</div>', unsafe_allow_html=True)
         progress_bar.progress(25)
         
-        input_file = f"c:/Users/hp/LNU/TruLedger-AI/{selected_dataset}.csv"
-        output_file = f"Processed{selected_dataset}.csv"
+        input_file = f"c:/Users/hp/LNU/TruLedger-AI/Uploaded_Datasets/Raw/{selected_dataset}.csv"
+        output_file_name = f"Processed{selected_dataset}.csv"
         
-        processed_file = process_transaction_data(input_file, output_file)
+        processed_file = process_transaction_data(input_file, output_file_name)
         
         if processed_file is None:
             st.error("❌ Failed to process data. Please check the file path and try again.")
