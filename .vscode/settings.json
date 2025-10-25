@@ -1,0 +1,13 @@
+// {
+//     // Use the workspace venv for analysis and the python extension
+//     "python.pythonPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+//     "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+//     // Help Pylance find packages installed in the venv
+//     "python.analysis.extraPaths": [
+//         "${workspaceFolder}\\.venv\\Lib\\site-packages"
+//     ],
+//     // Optional: reduce noisy type stubs resolution if needed
+//     "python.analysis.packageIndexDepths": {
+//         "default": 3
+//     }
+// }
