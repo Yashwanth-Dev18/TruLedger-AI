@@ -8,7 +8,7 @@ import sys
 
 # Import our processing functions
 from dataProcessor import process_transaction_data
-from app_ML_Engine import run_fraud_detection
+from ML_Engine import run_fraud_detection
 
 # =============================================
 # 🎯 PAGE CONFIGURATION

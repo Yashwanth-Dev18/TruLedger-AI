@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Import our processing functions
 from dataProcessor import process_transaction_data
-from app_ML_Engine import run_fraud_detection
+from ML_Engine import run_fraud_detection
 
 # =============================================
 # 📊 DATA LOADING FUNCTIONS
@@ -385,7 +385,7 @@ def create_interface():
     return demo
 
 # =============================================
-# 🚀 APP INITIALIZATION
+# 🚀 APP INITIALIZATION!
 # =============================================
 
 if __name__ == "__main__":
