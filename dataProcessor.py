@@ -105,3 +105,8 @@ def process_transaction_data(input_file_path):
     except Exception as e:
         print(f"❌ Error processing data: {e}")
         return None
+
+# Standalone Testing
+if __name__ == "__main__":
+    input_file_path = r"Uploaded_Datasets\Raw\TransactionLogs-1.csv"
+    output_file_path = process_transaction_data(input_file_path)
