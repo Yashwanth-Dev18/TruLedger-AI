@@ -5,7 +5,6 @@ import json
 import time
 import os
 import sys
-from app_LLM_XAI import FraudExplainer
 
 # Import our processing functions
 from dataProcessor import process_transaction_data
@@ -417,94 +416,94 @@ def main():
                     "🛒 Top Transaction Categories in Fraud"
                 )
     
-    # =============================================
-    # 🧠 LLM EXPLANATIONS SECTION
-    # =============================================
+    # # =============================================
+    # # 🧠 LLM EXPLANATIONS SECTION
+    # # =============================================
     
-    if st.session_state.get('analysis_complete', False):
-        st.markdown("---")
-        st.header("🧠 AI Fraud Explanations")
+    # if st.session_state.get('analysis_complete', False):
+    #     st.markdown("---")
+    #     st.header("🧠 AI Fraud Explanations")
         
-        # Load or generate LLM explanations
-        llm_data = load_llm_explanations()
+    #     # Load or generate LLM explanations
+    #     llm_data = load_llm_explanations()
         
-        if llm_data is None:
-            st.warning("LLM explanations not found. Click below to generate AI explanations.")
-            if st.button("Generate AI Explanations"):
-                with st.spinner("Generating AI explanations for fraud cases..."):
-                    try:
-                        explainer = FraudExplainer()
-                        fraud_df = st.session_state.fraud_df
-                        explanations = explainer.batch_explain_fraud_transactions(fraud_df, max_transactions=50)
+    #     if llm_data is None:
+    #         st.warning("LLM explanations not found. Click below to generate AI explanations.")
+    #         if st.button("Generate AI Explanations"):
+    #             with st.spinner("Generating AI explanations for fraud cases..."):
+    #                 try:
+    #                     explainer = FraudExplainer()
+    #                     fraud_df = st.session_state.fraud_df
+    #                     explanations = explainer.batch_explain_fraud_transactions(fraud_df, max_transactions=50)
                         
-                        llm_data = {
-                            'generated_at': pd.Timestamp.now().isoformat(),
-                            'total_transactions': len(explanations),
-                            'explanations': explanations
-                        }
+    #                     llm_data = {
+    #                         'generated_at': pd.Timestamp.now().isoformat(),
+    #                         'total_transactions': len(explanations),
+    #                         'explanations': explanations
+    #                     }
                         
-                        with open('llm_fraud_explanations.json', 'w') as f:
-                            json.dump(llm_data, f, indent=2)
+    #                     with open('llm_fraud_explanations.json', 'w') as f:
+    #                         json.dump(llm_data, f, indent=2)
                         
-                        st.session_state.llm_data = llm_data
-                        st.rerun()
+    #                     st.session_state.llm_data = llm_data
+    #                     st.rerun()
                         
-                    except Exception as e:
-                        st.error(f"Error generating explanations: {e}")
-        else:
-            st.session_state.llm_data = llm_data
+    #                 except Exception as e:
+    #                     st.error(f"Error generating explanations: {e}")
+    #     else:
+    #         st.session_state.llm_data = llm_data
         
-        # Display fraud transactions with explanations
-        if st.session_state.get('llm_data'):
-            explanations = st.session_state.llm_data['explanations']
+    #     # Display fraud transactions with explanations
+    #     if st.session_state.get('llm_data'):
+    #         explanations = st.session_state.llm_data['explanations']
             
-            # Pagination
-            if 'page' not in st.session_state:
-                st.session_state.page = 0
+    #         # Pagination
+    #         if 'page' not in st.session_state:
+    #             st.session_state.page = 0
             
-            items_per_page = 6
-            total_pages = (len(explanations) + items_per_page - 1) // items_per_page
+    #         items_per_page = 6
+    #         total_pages = (len(explanations) + items_per_page - 1) // items_per_page
             
-            # Get current page items
-            start_idx = st.session_state.page * items_per_page
-            end_idx = min(start_idx + items_per_page, len(explanations))
-            current_items = explanations[start_idx:end_idx]
+    #         # Get current page items
+    #         start_idx = st.session_state.page * items_per_page
+    #         end_idx = min(start_idx + items_per_page, len(explanations))
+    #         current_items = explanations[start_idx:end_idx]
             
-            st.subheader(f"Fraud Cases ({len(explanations)} total)")
+    #         st.subheader(f"Fraud Cases ({len(explanations)} total)")
             
-            # Display fraud cards
-            for i, exp in enumerate(current_items):
-                with st.container():
-                    st.markdown(f"""
-                    <div class="fraud-card">
-                        <h4>🚨 Fraud Alert #{start_idx + i + 1}</h4>
-                        <p><strong>Amount:</strong> ${exp['amount']:.2f} | 
-                        <strong>Time:</strong> {exp['time']}:00 | 
-                        <strong>Category:</strong> {exp['category']} | 
-                        <strong>Confidence:</strong> {exp['fraud_probability']:.1%}</p>
-                        <p><strong>AI Explanation:</strong> {exp['explanation']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+    #         # Display fraud cards
+    #         for i, exp in enumerate(current_items):
+    #             with st.container():
+    #                 st.markdown(f"""
+    #                 <div class="fraud-card">
+    #                     <h4>🚨 Fraud Alert #{start_idx + i + 1}</h4>
+    #                     <p><strong>Amount:</strong> ${exp['amount']:.2f} | 
+    #                     <strong>Time:</strong> {exp['time']}:00 | 
+    #                     <strong>Category:</strong> {exp['category']} | 
+    #                     <strong>Confidence:</strong> {exp['fraud_probability']:.1%}</p>
+    #                     <p><strong>AI Explanation:</strong> {exp['explanation']}</p>
+    #                 </div>
+    #                 """, unsafe_allow_html=True)
             
-            # Pagination controls
-            col1, col2, col3 = st.columns([1, 2, 1])
+    #         # Pagination controls
+    #         col1, col2, col3 = st.columns([1, 2, 1])
             
-            with col1:
-                if st.session_state.page > 0:
-                    if st.button("◀ Previous 6"):
-                        st.session_state.page -= 1
-                        st.rerun()
+    #         with col1:
+    #             if st.session_state.page > 0:
+    #                 if st.button("◀ Previous 6"):
+    #                     st.session_state.page -= 1
+    #                     st.rerun()
             
-            with col2:
-                st.write(f"Page {st.session_state.page + 1} of {total_pages}")
+    #         with col2:
+    #             st.write(f"Page {st.session_state.page + 1} of {total_pages}")
             
-            with col3:
-                if st.session_state.page < total_pages - 1:
-                    if st.button("Next 6 ▶"):
-                        st.session_state.page += 1
-                        st.rerun()
+    #         with col3:
+    #             if st.session_state.page < total_pages - 1:
+    #                 if st.button("Next 6 ▶"):
+    #                     st.session_state.page += 1
+    #                     st.rerun()
             
-            st.info(f"Showing {len(current_items)} of {len(explanations)} fraud cases")
+    #         st.info(f"Showing {len(current_items)} of {len(explanations)} fraud cases")
     
     # =============================================
     # 📝 FOOTER
