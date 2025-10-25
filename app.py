@@ -260,6 +260,7 @@ def main():
         
         
         success = run_fraud_detection(processed_file)
+        print(f"Fraud detection success: {success}")
 
         # Step 2: Fraud Detection
         status_text.markdown('<div class="processing-step">🔍 Step 2/3: Running fraud detection...</div>', unsafe_allow_html=True)
