@@ -39,7 +39,7 @@ def process_transaction_data(input_file_path):
         df.drop(columns=["state"], inplace=True, errors='ignore')
 
         # HANDLE JOB CATEGORIES
-        jobcat_path = "c:/Users/hp/LNU/TruLedger-AI/Uploaded_Datasets/Processed/job_categories.csv"
+        jobcat_path = os.path.join("Uploaded_Datasets", "Processed", "job_categories.csv")
         jobcat_df = pd.read_csv(jobcat_path)
 
         df["job"] = df["job"].astype(str).str.replace(",", " -")
