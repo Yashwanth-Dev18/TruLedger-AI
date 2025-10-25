@@ -96,9 +96,7 @@ def process_transaction_data(input_file_path):
             df = df[["is_fraud"] + other_cols]
 
         # OUTPUT PATH
-        output_dir = os.path.join("Uploaded_Datasets", "Processed")
-        os.makedirs(output_dir, exist_ok=True)
-        output_file_path = os.path.join(output_dir, f"Processed_{os.path.basename(input_file_path)}")
+        output_file_path = os.path.join("Uploaded_Datasets", "Processed", f"Processed_{os.path.basename(input_file_path)}")
 
         df.to_csv(output_file_path, index=False)
         print(f"✅ Successfully processed and saved: {output_file_path}")
