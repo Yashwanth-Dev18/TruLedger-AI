@@ -11,14 +11,21 @@ def run_fraud_detection(processed_file_path):
         model = joblib.load('xgboost_fraud_model.pkl')
         scaler = joblib.load('xgboost_scaler.pkl') 
         optimal_threshold = joblib.load('optimal_threshold.pkl')
-        print(f" Model loaded successfully (threshold: {optimal_threshold:.3f})")
-    except FileNotFoundError:
-        print(" Model files not found! Please run training first.")
-        return None
+        print(f"✅ Model loaded successfully (threshold: {optimal_threshold:.3f})")
+    except FileNotFoundError as e:
+        print(f"❌ Model files not found: {e}")
+        print("📝 Please ensure these files are in your deployment:")
+        print("   - xgboost_fraud_model.pkl")
+        print("   - xgboost_scaler.pkl")
+        print("   - optimal_threshold.pkl")
+        return False
+    except Exception as e:
+        print(f"❌ Error loading model files: {e}")
+        return False
 
     try:
         # Loading processed test data
-        print(f" Loading processed data: {processed_file_path}")
+        print(f"Loading processed data: {processed_file_path}")
         df = pd.read_csv(processed_file_path)
         print(f"Dataset shape: {df.shape}")
 
